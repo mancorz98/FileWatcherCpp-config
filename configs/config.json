@@ -1,0 +1,12 @@
+[
+  {
+    "folder": "temp_file",
+    "file_extension": ".py",
+    "os_command": "python3 ${file}",
+    "on": [
+      "modified",
+      "created",
+      "renamed"
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+{
+  "workbench.colorCustomizations": {
+    "textMateRules": [
+      {
+        "scope": [
+          "variable.parameter",
+          "variable.parameter.function",
+          "meta.parameter.type.variable",
+          "variable.other.readwrite.parameter"
+        ],
+        "settings": {
+          "foreground": "#ff00e6",
+          "fontStyle": "italic"
+        }
+      }
+    ],
+    "activityBar.background": "#312F00",
+    "titleBar.activeBackground": "#444201",
+    "titleBar.activeForeground": "#FFFDC4"
+  }
+}

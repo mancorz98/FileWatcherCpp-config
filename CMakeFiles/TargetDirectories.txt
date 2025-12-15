@@ -1,0 +1,3 @@
+/Users/karol/Documents/OpenCV-course/cpp-try/CMakeFiles/main.dir
+/Users/karol/Documents/OpenCV-course/cpp-try/CMakeFiles/edit_cache.dir
+/Users/karol/Documents/OpenCV-course/cpp-try/CMakeFiles/rebuild_cache.dir
