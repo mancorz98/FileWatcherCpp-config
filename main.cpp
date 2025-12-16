@@ -66,42 +66,45 @@ void runPythonScript(const std::string &script_path)
     }
 }
 
-void handleFileChange(const std::string &folder, const std::string &path, const filewatch::Event change_type)
+std::string update_command_with_key(const std::string &command, const std::string &key, const std::string &value)
 {
-
-    std::string full_path = std::filesystem::path(folder) / std::filesystem::path(path);
-
-    // Check if the file still exists for certain events
-    if (change_type != filewatch::Event::removed && !std::filesystem::exists(full_path))
+    std::string modified_key = "${" + key + "}";
+    std::string modified_command = command;
+    size_t pos = command.find(modified_key);
+    while ((pos = modified_command.find(modified_key, pos)) != std::string::npos)
     {
-        std::cerr << "Warning: File does not exist: " << full_path << std::endl;
-        return;
+        modified_command.replace(pos, modified_key.length(), value);
+        pos += value.length();
     }
+    return modified_command;
+}
 
-    switch (change_type)
+std::unique_ptr<std::string> prepare_command(const std::string &command, const std::string &path)
+{
+    std::cout << "Preparing command for path: " << path << std::endl;
+    std::string modified_command = update_command_with_key(command, "file", path);
+    return std::make_unique<std::string>(modified_command);
+    // return std::make_unique<std::string>(command);
+}
+
+void performAction(const json &config, const std::string &path)
+{
+    std::cout << "Performing action for path: " << path << std::endl;
+    if (!(config.contains("os_command")))
+        return;
+    try
     {
-    case filewatch::Event::added:
-        std::cout << "[+] File added: " << path << std::endl;
-        readFileContents(full_path);
-        break;
-    case filewatch::Event::removed:
-        std::cout << "[-] File removed: " << path << std::endl;
-        break;
-    case filewatch::Event::modified:
-        std::cout << "[*] File modified: " << path << std::endl;
-        readFileContents(full_path);
-        runPythonScript(full_path);
-        break;
-    case filewatch::Event::renamed_old:
-        std::cout << "[~] File renamed (old name): " << path << std::endl;
-        break;
-    case filewatch::Event::renamed_new:
-        std::cout << "[~] File renamed (new name): " << path << std::endl;
-        readFileContents(full_path);
-        break;
-    default:
-        std::cout << "[?] Unknown event for file: " << path << std::endl;
-        break;
+        auto command = prepare_command(config["os_command"].get<std::string>(), path);
+        std::cout << "Executing command: " << *command << std::endl;
+        int result = system(command->c_str());
+        if (result != 0)
+        {
+            std::cerr << "Error: Command execution failed with code " << result << std::endl;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Error preparing or executing command: " << e.what() << std::endl;
     }
 }
 
@@ -130,13 +133,13 @@ void handleFileChange(const json &config,
     case filewatch::Event::added:
         if (config["created"].get<bool>())
         {
-            readFileContents(full_path);
+            performAction(config, full_path.string());
         }
         break;
     case filewatch::Event::removed:
         if (config["deleted"].get<bool>())
         {
-            std::cout << "File removed: " << path << std::endl;
+            performAction(config, full_path.string());
         }
         break;
 
@@ -144,20 +147,20 @@ void handleFileChange(const json &config,
         std::cout << "File modified: " << path << std::endl;
         if (config["modified"].get<bool>())
         {
-            readFileContents(full_path);
-            runPythonScript(full_path);
+            performAction(config, full_path.string());
         }
         break;
     case filewatch::Event::renamed_old:
         if (config["renamed_old"].get<bool>())
         {
-            std::cout << "File renamed (old name): " << path << std::endl;
+            performAction(config, full_path.string());
         }
+
         break;
     case filewatch::Event::renamed_new:
         if (config["renamed_new"].get<bool>())
         {
-            readFileContents(full_path);
+            performAction(config, full_path.string());
         }
         break;
     default:
@@ -241,9 +244,6 @@ int main(int argc, char *argv[])
         return 1;
         ;
     }
-
-    // filewatch::FileWatch<std::string> watch(path_fs, [path](const std::string &file_path, const filewatch::Event change_type)
-    //                                         { handleFileChange(path, file_path, change_type); });
 
     while (running)
     {
